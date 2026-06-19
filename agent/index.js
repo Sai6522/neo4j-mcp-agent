@@ -16,6 +16,13 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const mcpTransport = new StdioClientTransport({
   command: 'node',
   args: [path.join(__dirname, '../mcp-server/index.js')],
+  env: {
+    ...process.env,
+    NEO4J_URI: process.env.NEO4J_URI,
+    NEO4J_USER: process.env.NEO4J_USER,
+    NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,
+    NEO4J_DATABASE: process.env.NEO4J_DATABASE,
+  },
 });
 const mcpClient = new Client({ name: 'neo4j-agent', version: '1.0.0' });
 await mcpClient.connect(mcpTransport);

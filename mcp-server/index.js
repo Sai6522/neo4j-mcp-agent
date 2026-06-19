@@ -6,6 +6,7 @@ import { z } from 'zod';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Load .env if present (local dev), on Render env vars are set directly
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const driver = neo4j.driver(
