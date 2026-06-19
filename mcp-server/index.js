@@ -6,7 +6,6 @@ import { z } from 'zod';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Load .env if present (local dev), on Render env vars are set directly
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const driver = neo4j.driver(
@@ -14,7 +13,7 @@ const driver = neo4j.driver(
   neo4j.auth.basic(process.env.NEO4J_USER, process.env.NEO4J_PASSWORD)
 );
 
-const server = new McpServer({ name: 'neo4j-movies', version: '1.0.0' });
+const server = new McpServer({ name: 'neo4j-drugs', version: '1.0.0' });
 
 async function query(cypher, params = {}) {
   const session = driver.session();
@@ -26,66 +25,86 @@ async function query(cypher, params = {}) {
   }
 }
 
-server.registerTool('search_movies', {
-  description: 'Search movies by title keyword, genre, or year',
+server.registerTool('search_drugs', {
+  description: 'Search drugs by name or category (e.g. SSRI, Statin, Antibiotic)',
   inputSchema: {
-    keyword: z.string().optional().describe('Title keyword'),
-    genre: z.string().optional().describe('Genre e.g. Sci-Fi, Drama, Crime, Action'),
-    year: z.number().int().optional().describe('Release year'),
+    name: z.string().optional().describe('Drug name keyword'),
+    category: z.string().optional().describe('Drug category e.g. SSRI, Statin, Antibiotic, ACE Inhibitor'),
   }
-}, async ({ keyword, genre, year }) => {
+}, async ({ name, category }) => {
   const where = [];
   const params = {};
-  if (keyword) { where.push('toLower(m.title) CONTAINS toLower($keyword)'); params.keyword = keyword; }
-  if (genre)   { where.push('toLower(m.genre) = toLower($genre)'); params.genre = genre; }
-  if (year)    { where.push('m.year = $year'); params.year = neo4j.int(year); }
+  if (name)     { where.push('toLower(d.name) CONTAINS toLower($name)'); params.name = name; }
+  if (category) { where.push('toLower(d.category) CONTAINS toLower($category)'); params.category = category; }
   const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
-  const rows = await query(`MATCH (m:Movie) ${w} RETURN m.title AS title, m.genre AS genre, m.year AS year, m.rating AS rating ORDER BY m.rating DESC LIMIT 10`, params);
+  const rows = await query(
+    `MATCH (d:Drug) ${w} RETURN d.name AS name, d.category AS category, d.description AS description ORDER BY d.name`,
+    params
+  );
   return { content: [{ type: 'text', text: JSON.stringify(rows, null, 2) }] };
 });
 
-server.registerTool('get_recommendations', {
-  description: 'Get movies similar/recommended based on a given movie title',
-  inputSchema: { title: z.string().describe('Movie title') }
-}, async ({ title }) => {
-  const rows = await query(
-    `MATCH (m:Movie {title: $title})-[:SIMILAR_TO]->(r:Movie)
-     RETURN r.title AS title, r.genre AS genre, r.year AS year, r.rating AS rating ORDER BY r.rating DESC`,
-    { title }
-  );
-  return { content: [{ type: 'text', text: rows.length ? JSON.stringify(rows, null, 2) : `No recommendations found for "${title}"` }] };
-});
-
-server.registerTool('get_person_movies', {
-  description: 'Get movies for an actor or director by name',
-  inputSchema: { name: z.string().describe('Actor or director name') }
+server.registerTool('get_interactions', {
+  description: 'Get all known drug interactions for a given drug, with severity and effect',
+  inputSchema: { name: z.string().describe('Drug name') }
 }, async ({ name }) => {
   const rows = await query(
-    `MATCH (p:Person)-[r:ACTED_IN|DIRECTED]->(m:Movie)
-     WHERE toLower(p.name) CONTAINS toLower($name)
-     RETURN p.name AS person, p.role AS role, type(r) AS relationship, m.title AS movie, m.year AS year, m.rating AS rating
-     ORDER BY m.year DESC`,
+    `MATCH (d:Drug)-[r:INTERACTS_WITH]->(other:Drug)
+     WHERE toLower(d.name) CONTAINS toLower($name)
+     RETURN d.name AS drug, other.name AS interacts_with, r.severity AS severity, r.effect AS effect
+     ORDER BY CASE r.severity WHEN 'MAJOR' THEN 1 WHEN 'MODERATE' THEN 2 ELSE 3 END`,
     { name }
   );
-  return { content: [{ type: 'text', text: rows.length ? JSON.stringify(rows, null, 2) : `No person found matching "${name}"` }] };
+  return { content: [{ type: 'text', text: rows.length ? JSON.stringify(rows, null, 2) : `No interactions found for "${name}"` }] };
 });
 
-server.registerTool('get_top_rated', {
-  description: 'Get top 5 rated movies, optionally filtered by genre',
-  inputSchema: {
-    genre: z.string().optional().describe('Optional genre filter e.g. Action, Drama, Sci-Fi, Crime'),
-  }
-}, async ({ genre }) => {
-  const w = genre ? 'WHERE toLower(m.genre) = toLower($genre)' : '';
+server.registerTool('check_combination', {
+  description: 'Check if two or more drugs interact with each other — returns all pairwise interactions',
+  inputSchema: { drugs: z.array(z.string()).describe('List of drug names to check together') }
+}, async ({ drugs }) => {
   const rows = await query(
-    `MATCH (m:Movie) ${w} RETURN m.title AS title, m.genre AS genre, m.year AS year, m.rating AS rating ORDER BY m.rating DESC LIMIT 5`,
-    { genre: genre || '' }
+    `UNWIND $drugs AS nameA
+     UNWIND $drugs AS nameB
+     WITH nameA, nameB WHERE nameA < nameB
+     MATCH (a:Drug)-[r:INTERACTS_WITH]->(b:Drug)
+     WHERE toLower(a.name) CONTAINS toLower(nameA) AND toLower(b.name) CONTAINS toLower(nameB)
+     RETURN a.name AS drug_a, b.name AS drug_b, r.severity AS severity, r.effect AS effect
+     ORDER BY CASE r.severity WHEN 'MAJOR' THEN 1 WHEN 'MODERATE' THEN 2 ELSE 3 END`,
+    { drugs }
+  );
+  const text = rows.length
+    ? JSON.stringify(rows, null, 2)
+    : `No interactions found among: ${drugs.join(', ')}`;
+  return { content: [{ type: 'text', text }] };
+});
+
+server.registerTool('get_drugs_for_condition', {
+  description: 'Get all drugs that treat a given medical condition',
+  inputSchema: { condition: z.string().describe('Medical condition e.g. Hypertension, Depression, Type 2 Diabetes') }
+}, async ({ condition }) => {
+  const rows = await query(
+    `MATCH (d:Drug)-[:TREATS]->(c:Condition)
+     WHERE toLower(c.name) CONTAINS toLower($condition)
+     RETURN d.name AS drug, d.category AS category, d.description AS description, c.name AS condition`,
+    { condition }
+  );
+  return { content: [{ type: 'text', text: rows.length ? JSON.stringify(rows, null, 2) : `No drugs found for "${condition}"` }] };
+});
+
+server.registerTool('get_major_interactions', {
+  description: 'Get all MAJOR severity drug interactions in the database — the most dangerous combinations',
+  inputSchema: {}
+}, async () => {
+  const rows = await query(
+    `MATCH (a:Drug)-[r:INTERACTS_WITH {severity: 'MAJOR'}]->(b:Drug)
+     WHERE a.name < b.name
+     RETURN a.name AS drug_a, b.name AS drug_b, r.effect AS effect`
   );
   return { content: [{ type: 'text', text: JSON.stringify(rows, null, 2) }] };
 });
 
 server.registerTool('run_cypher', {
-  description: 'Run a custom read-only Cypher query on the Neo4j movies graph',
+  description: 'Run a custom read-only Cypher query on the Neo4j drug interactions graph',
   inputSchema: { cypher: z.string().describe('Read-only Cypher query') }
 }, async ({ cypher }) => {
   if (/\b(CREATE|DELETE|SET|MERGE|DROP|REMOVE)\b/i.test(cypher)) {
@@ -97,6 +116,6 @@ server.registerTool('run_cypher', {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error('Neo4j MCP Server running...');
+console.error('Neo4j Drug Interactions MCP Server running...');
 
 process.on('SIGINT', async () => { await driver.close(); process.exit(0); });

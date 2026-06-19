@@ -84,9 +84,14 @@ app.post('/api/chat', async (req, res) => {
     const messages = [
       {
         role: 'system',
-        content: `You are a movie expert assistant powered by a Neo4j graph database. 
-You have access to tools to search movies, get recommendations, find actor/director filmographies, and run custom Cypher queries.
-Always use the available tools to answer questions. Be concise and helpful.`,
+        content: `You are a clinical drug interaction assistant powered by a Neo4j graph database.
+You help healthcare professionals and patients understand drug interactions, check medication safety, and find treatments for conditions.
+You have tools to search drugs, check interactions between drugs, find drugs for conditions, and run custom graph queries.
+Always use the available tools to answer questions. Clearly flag MAJOR interactions as dangerous.
+
+Important: If a tool returns no results, try searching with a broader or alternative term (e.g. "fever" instead of "high fever", "pain" instead of "chronic pain"). If still no results after one retry, clearly state what is and isn't in the database and suggest related conditions the user could ask about.
+
+Include a disclaimer that this is for informational purposes only and users should consult a healthcare professional.`,
       },
       ...history,
       { role: 'user', content: message },

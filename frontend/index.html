@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neo4j MCP Chat Agent</title>
+<title>Drug Interaction Checker — Neo4j MCP Agent</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -19,7 +19,6 @@
     overflow: hidden;
   }
 
-  /* Header */
   header {
     background: rgba(15, 15, 25, 0.95);
     border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -33,11 +32,11 @@
   .header-left { display: flex; align-items: center; gap: 12px; }
   .logo {
     width: 36px; height: 36px;
-    background: linear-gradient(135deg, #00c27a, #0090d4);
+    background: linear-gradient(135deg, #e11d48, #7c3aed);
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-size: 18px;
-    box-shadow: 0 0 20px rgba(0, 194, 122, 0.3);
+    box-shadow: 0 0 20px rgba(225, 29, 72, 0.3);
   }
   .header-title h1 { font-size: 1rem; font-weight: 600; color: #f1f5f9; }
   .header-title p { font-size: 0.72rem; color: #64748b; margin-top: 1px; }
@@ -53,15 +52,10 @@
     background: #00c27a;
     animation: pulse 2s infinite;
   }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-  /* Main layout */
   .main { display: flex; flex: 1; overflow: hidden; }
 
-  /* Sidebar */
   .sidebar {
     width: 240px;
     background: rgba(15, 15, 25, 0.6);
@@ -86,12 +80,11 @@
     line-height: 1.4;
   }
   .chip:hover {
-    background: rgba(0, 144, 212, 0.1);
-    border-color: rgba(0, 144, 212, 0.3);
-    color: #7dd3fc;
+    background: rgba(225, 29, 72, 0.08);
+    border-color: rgba(225, 29, 72, 0.3);
+    color: #fda4af;
   }
 
-  /* Chat area */
   .chat-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
   #chat {
@@ -104,7 +97,6 @@
   #chat::-webkit-scrollbar-track { background: transparent; }
   #chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
-  /* Messages */
   .msg-row { display: flex; gap: 12px; align-items: flex-start; }
   .msg-row.user { flex-direction: row-reverse; }
 
@@ -114,8 +106,8 @@
     font-size: 14px; flex-shrink: 0; margin-top: 2px;
   }
   .avatar.bot {
-    background: linear-gradient(135deg, #00c27a22, #0090d422);
-    border: 1px solid rgba(0, 194, 122, 0.2);
+    background: linear-gradient(135deg, #e11d4822, #7c3aed22);
+    border: 1px solid rgba(225, 29, 72, 0.2);
   }
   .avatar.user-av {
     background: linear-gradient(135deg, #6366f122, #8b5cf622);
@@ -153,7 +145,7 @@
   }
   .dots span {
     display: inline-block; width: 5px; height: 5px;
-    background: #0090d4; border-radius: 50%;
+    background: #e11d48; border-radius: 50%;
     animation: bounce 1.2s infinite;
   }
   .dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -163,7 +155,6 @@
     40% { transform: translateY(-5px); opacity: 1; }
   }
 
-  /* Input bar */
   .input-bar {
     padding: 16px 32px 20px;
     background: rgba(10, 10, 15, 0.8);
@@ -178,7 +169,7 @@
     padding: 10px 10px 10px 16px;
     transition: border-color 0.2s;
   }
-  .input-wrap:focus-within { border-color: rgba(0, 144, 212, 0.4); }
+  .input-wrap:focus-within { border-color: rgba(225, 29, 72, 0.4); }
   #input {
     flex: 1; background: transparent; border: none; outline: none;
     color: #e2e8f0; font-size: 0.88rem; font-family: inherit;
@@ -188,7 +179,7 @@
   #input::placeholder { color: #334155; }
   #send-btn {
     width: 36px; height: 36px; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, #0090d4, #00c27a);
+    background: linear-gradient(135deg, #e11d48, #7c3aed);
     color: white; cursor: pointer; display: flex;
     align-items: center; justify-content: center;
     transition: opacity 0.2s, transform 0.15s;
@@ -198,35 +189,37 @@
   #send-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
   #send-btn svg { width: 16px; height: 16px; }
 
-  .input-hint {
-    font-size: 0.68rem; color: #1e293b;
-    margin-top: 8px; text-align: center;
-  }
+  .input-hint { font-size: 0.68rem; color: #1e293b; margin-top: 8px; text-align: center; }
 
-  /* Welcome */
   .welcome {
     text-align: center; padding: 40px 20px;
     display: flex; flex-direction: column; align-items: center; gap: 12px;
   }
   .welcome-icon {
     width: 56px; height: 56px; border-radius: 16px;
-    background: linear-gradient(135deg, #00c27a20, #0090d420);
-    border: 1px solid rgba(0, 194, 122, 0.2);
+    background: linear-gradient(135deg, #e11d4820, #7c3aed20);
+    border: 1px solid rgba(225, 29, 72, 0.2);
     display: flex; align-items: center; justify-content: center;
     font-size: 26px;
-    box-shadow: 0 0 40px rgba(0, 194, 122, 0.1);
+    box-shadow: 0 0 40px rgba(225, 29, 72, 0.1);
   }
   .welcome h2 { font-size: 1.1rem; font-weight: 600; color: #f1f5f9; }
-  .welcome p { font-size: 0.82rem; color: #475569; max-width: 360px; line-height: 1.6; }
+  .welcome p { font-size: 0.82rem; color: #475569; max-width: 380px; line-height: 1.6; }
+  .disclaimer {
+    font-size: 0.7rem; color: #374151;
+    background: rgba(225, 29, 72, 0.05);
+    border: 1px solid rgba(225, 29, 72, 0.1);
+    padding: 6px 12px; border-radius: 8px; margin-top: 4px;
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-left">
-    <div class="logo">🔗</div>
+    <div class="logo">💊</div>
     <div class="header-title">
-      <h1>Neo4j MCP Chat Agent</h1>
+      <h1>Drug Interaction Checker</h1>
       <p>Powered by Groq LLM + Neo4j AuraDB</p>
     </div>
   </div>
@@ -238,37 +231,39 @@
 
 <div class="main">
   <div class="sidebar">
-    <div class="sidebar-label">Recommendations</div>
-    <button class="chip" onclick="send(this.textContent)">Recommend movies like Inception</button>
-    <button class="chip" onclick="send(this.textContent)">What to watch after Interstellar?</button>
+    <div class="sidebar-label">Interaction Checks</div>
+    <button class="chip" onclick="send(this.textContent)">Is it safe to take Warfarin with Aspirin?</button>
+    <button class="chip" onclick="send(this.textContent)">Check interactions: Warfarin, Ibuprofen, Ciprofloxacin</button>
+    <button class="chip" onclick="send(this.textContent)">Can I combine Fluoxetine and Sertraline?</button>
 
-    <div class="sidebar-label">Search</div>
-    <button class="chip" onclick="send(this.textContent)">Show all Sci-Fi movies</button>
-    <button class="chip" onclick="send(this.textContent)">Best Crime movies</button>
-    <button class="chip" onclick="send(this.textContent)">Movies from 1994</button>
+    <div class="sidebar-label">Search Drugs</div>
+    <button class="chip" onclick="send(this.textContent)">List all SSRI drugs</button>
+    <button class="chip" onclick="send(this.textContent)">What are Statin medications?</button>
+    <button class="chip" onclick="send(this.textContent)">Search for Warfarin</button>
 
-    <div class="sidebar-label">People</div>
-    <button class="chip" onclick="send(this.textContent)">Christopher Nolan films</button>
-    <button class="chip" onclick="send(this.textContent)">Movies with Keanu Reeves</button>
-    <button class="chip" onclick="send(this.textContent)">Samuel L. Jackson filmography</button>
+    <div class="sidebar-label">By Condition</div>
+    <button class="chip" onclick="send(this.textContent)">Drugs for Hypertension</button>
+    <button class="chip" onclick="send(this.textContent)">What treats Depression?</button>
+    <button class="chip" onclick="send(this.textContent)">Medications for Type 2 Diabetes</button>
 
-    <div class="sidebar-label">Top Rated</div>
-    <button class="chip" onclick="send(this.textContent)">Top 5 rated movies</button>
-    <button class="chip" onclick="send(this.textContent)">Best Action movies</button>
+    <div class="sidebar-label">Risk Overview</div>
+    <button class="chip" onclick="send(this.textContent)">Show all MAJOR drug interactions</button>
+    <button class="chip" onclick="send(this.textContent)">What interacts with Digoxin?</button>
   </div>
 
   <div class="chat-wrapper">
     <div id="chat">
       <div class="welcome">
-        <div class="welcome-icon">🎬</div>
-        <h2>Ask me anything about movies</h2>
-        <p>I query a live Neo4j graph database using MCP tools. Try recommendations, actor filmographies, ratings, or custom graph queries.</p>
+        <div class="welcome-icon">💊</div>
+        <h2>Drug Interaction Checker</h2>
+        <p>Ask about drug interactions, check medication combinations, find treatments for conditions, or run custom graph queries against the Neo4j drug database.</p>
+        <div class="disclaimer">⚠️ For informational purposes only. Always consult a healthcare professional.</div>
       </div>
     </div>
 
     <div class="input-bar">
       <div class="input-wrap">
-        <textarea id="input" rows="1" placeholder="Ask about movies, directors, recommendations..."></textarea>
+        <textarea id="input" rows="1" placeholder="Ask about drug interactions, medications, or conditions..."></textarea>
         <button id="send-btn" onclick="send()" title="Send">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -288,21 +283,35 @@
   const history = [];
   let welcomeRemoved = false;
 
-  // Auto-resize textarea
   inputEl.addEventListener('input', () => {
     inputEl.style.height = 'auto';
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
   });
 
   function renderMarkdown(text) {
-    return text
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Escape HTML first
+    let out = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Tables: detect blocks of lines containing |
+    out = out.replace(/((?:^|\n)(\|.+)+)/g, match => {
+      const lines = match.trim().split('\n').map(l => l.trim()).filter(l => l.startsWith('|'));
+      if (lines.length < 2) return match;
+      const rows = lines.filter(l => !/^\|[-| :]+\|$/.test(l)); // strip separator rows
+      const html = rows.map((row, i) => {
+        const cells = row.replace(/^\||\|$/g, '').split('|').map(c => `<${i===0?'th':'td'} style="padding:6px 12px;border:1px solid rgba(255,255,255,0.08);${i===0?'background:rgba(255,255,255,0.05);font-weight:600;':''}">${c.trim()}</${i===0?'th':'td'}>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      return `<table style="border-collapse:collapse;width:100%;margin:8px 0;font-size:0.82rem">${html}</table>`;
+    });
+
+    out = out
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px;font-size:0.85em">$1</code>')
       .replace(/^\s*[-*]\s+(.+)/gm, '<li>$1</li>')
       .replace(/(<li>.*<\/li>)/gs, '<ul style="padding-left:18px;margin:4px 0">$1</ul>')
       .replace(/\n/g, '<br>');
+    return out;
   }
 
   function addMessage(role, text) {
@@ -315,7 +324,7 @@
 
     const avatar = document.createElement('div');
     avatar.className = `avatar ${role === 'user' ? 'user-av' : 'bot'}`;
-    avatar.textContent = role === 'user' ? '👤' : '🤖';
+    avatar.textContent = role === 'user' ? '👤' : '💊';
 
     const bubble = document.createElement('div');
     bubble.className = `bubble ${role === 'user' ? 'user' : 'bot'}`;
@@ -329,7 +338,6 @@
     row.appendChild(bubble);
     chatEl.appendChild(row);
     chatEl.scrollTop = chatEl.scrollHeight;
-    return bubble;
   }
 
   function addThinking() {
@@ -340,9 +348,9 @@
     const row = document.createElement('div');
     row.className = 'thinking-row';
     row.innerHTML = `
-      <div class="avatar bot">🤖</div>
+      <div class="avatar bot">💊</div>
       <div class="thinking-bubble">
-        <span>Querying Neo4j graph</span>
+        <span>Querying Neo4j drug graph</span>
         <div class="dots"><span></span><span></span><span></span></div>
       </div>`;
     chatEl.appendChild(row);
