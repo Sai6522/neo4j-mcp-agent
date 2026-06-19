@@ -67,16 +67,14 @@ server.registerTool('get_person_movies', {
 });
 
 server.registerTool('get_top_rated', {
-  description: 'Get top rated movies, optionally by genre',
+  description: 'Get top 5 rated movies, optionally filtered by genre',
   inputSchema: {
-    genre: z.string().optional().describe('Optional genre filter'),
-    limit: z.string().optional().describe('Number of results to return, default 5'),
+    genre: z.string().optional().describe('Optional genre filter e.g. Action, Drama, Sci-Fi, Crime'),
   }
-}, async ({ genre, limit }) => {
-  const n = parseInt(limit || '5', 10);
+}, async ({ genre }) => {
   const w = genre ? 'WHERE toLower(m.genre) = toLower($genre)' : '';
   const rows = await query(
-    `MATCH (m:Movie) ${w} RETURN m.title AS title, m.genre AS genre, m.year AS year, m.rating AS rating ORDER BY m.rating DESC LIMIT ${n}`,
+    `MATCH (m:Movie) ${w} RETURN m.title AS title, m.genre AS genre, m.year AS year, m.rating AS rating ORDER BY m.rating DESC LIMIT 5`,
     { genre: genre || '' }
   );
   return { content: [{ type: 'text', text: JSON.stringify(rows, null, 2) }] };
