@@ -128,7 +128,6 @@
     border-radius: 14px;
     font-size: 0.875rem;
     line-height: 1.65;
-    white-space: pre-wrap;
     word-break: break-word;
   }
   .bubble.bot {
@@ -295,6 +294,17 @@
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
   });
 
+  function renderMarkdown(text) {
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px;font-size:0.85em">$1</code>')
+      .replace(/^\s*[-*]\s+(.+)/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gs, '<ul style="padding-left:18px;margin:4px 0">$1</ul>')
+      .replace(/\n/g, '<br>');
+  }
+
   function addMessage(role, text) {
     if (!welcomeRemoved) {
       chatEl.querySelector('.welcome')?.remove();
@@ -309,7 +319,11 @@
 
     const bubble = document.createElement('div');
     bubble.className = `bubble ${role === 'user' ? 'user' : 'bot'}`;
-    bubble.textContent = text;
+    if (role === 'user') {
+      bubble.textContent = text;
+    } else {
+      bubble.innerHTML = renderMarkdown(text);
+    }
 
     row.appendChild(avatar);
     row.appendChild(bubble);
