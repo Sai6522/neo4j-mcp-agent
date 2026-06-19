@@ -5,95 +5,346 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neo4j MCP Chat Agent</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
 
-  header {
-    background: linear-gradient(135deg, #008cc1, #00c181);
-    padding: 16px 24px;
-    display: flex; align-items: center; gap: 12px;
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0a0a0f;
+    color: #e2e8f0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
-  header h1 { font-size: 1.2rem; font-weight: 600; }
-  header .badge { background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; }
 
-  #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  /* Header */
+  header {
+    background: rgba(15, 15, 25, 0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #00c27a, #0090d4);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 20px rgba(0, 194, 122, 0.3);
+  }
+  .header-title h1 { font-size: 1rem; font-weight: 600; color: #f1f5f9; }
+  .header-title p { font-size: 0.72rem; color: #64748b; margin-top: 1px; }
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0, 194, 122, 0.1);
+    border: 1px solid rgba(0, 194, 122, 0.25);
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 0.72rem; color: #00c27a; font-weight: 500;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #00c27a;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
 
-  .message { max-width: 75%; padding: 12px 16px; border-radius: 16px; line-height: 1.5; font-size: 0.92rem; }
-  .user { align-self: flex-end; background: #008cc1; color: white; border-bottom-right-radius: 4px; }
-  .assistant { align-self: flex-start; background: #1e1e2e; border: 1px solid #2a2a3e; border-bottom-left-radius: 4px; white-space: pre-wrap; }
-  .thinking { align-self: flex-start; color: #666; font-style: italic; font-size: 0.85rem; }
+  /* Main layout */
+  .main { display: flex; flex: 1; overflow: hidden; }
 
-  #input-area { padding: 16px; background: #1a1a2e; border-top: 1px solid #2a2a3e; display: flex; gap: 10px; }
-  #input { flex: 1; background: #0f0f1a; border: 1px solid #2a2a3e; border-radius: 24px; padding: 12px 18px; color: #e0e0e0; font-size: 0.92rem; outline: none; }
-  #input:focus { border-color: #008cc1; }
-  button { background: linear-gradient(135deg, #008cc1, #00c181); color: white; border: none; border-radius: 24px; padding: 12px 22px; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
-  button:hover { opacity: 0.85; }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    background: rgba(15, 15, 25, 0.6);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 14px;
+    display: flex; flex-direction: column; gap: 6px;
+    overflow-y: auto;
+  }
+  .sidebar-label {
+    font-size: 0.68rem; font-weight: 600;
+    color: #475569; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 0 8px; margin-bottom: 4px; margin-top: 10px;
+  }
+  .sidebar-label:first-child { margin-top: 0; }
+  .chip {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.07);
+    color: #94a3b8;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 0.78rem; cursor: pointer;
+    transition: all 0.15s; text-align: left;
+    line-height: 1.4;
+  }
+  .chip:hover {
+    background: rgba(0, 144, 212, 0.1);
+    border-color: rgba(0, 144, 212, 0.3);
+    color: #7dd3fc;
+  }
 
-  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 16px; }
-  .chip { background: #1e1e2e; border: 1px solid #2a2a3e; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: border-color 0.2s; }
-  .chip:hover { border-color: #008cc1; color: #008cc1; }
+  /* Chat area */
+  .chat-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-  /* Neo4j brand dot */
-  .neo-dot { width: 10px; height: 10px; background: #00c181; border-radius: 50%; }
+  #chat {
+    flex: 1; overflow-y: auto;
+    padding: 28px 32px;
+    display: flex; flex-direction: column; gap: 20px;
+    scroll-behavior: smooth;
+  }
+  #chat::-webkit-scrollbar { width: 4px; }
+  #chat::-webkit-scrollbar-track { background: transparent; }
+  #chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  /* Messages */
+  .msg-row { display: flex; gap: 12px; align-items: flex-start; }
+  .msg-row.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px; height: 32px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+  .avatar.bot {
+    background: linear-gradient(135deg, #00c27a22, #0090d422);
+    border: 1px solid rgba(0, 194, 122, 0.2);
+  }
+  .avatar.user-av {
+    background: linear-gradient(135deg, #6366f122, #8b5cf622);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+  }
+
+  .bubble {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .bubble.bot {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-top-left-radius: 4px;
+    color: #cbd5e1;
+  }
+  .bubble.user {
+    background: linear-gradient(135deg, #1d4ed8, #4f46e5);
+    border-top-right-radius: 4px;
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(79, 70, 229, 0.25);
+  }
+
+  .thinking-row { display: flex; gap: 12px; align-items: center; }
+  .thinking-bubble {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 10px 16px; border-radius: 14px; border-top-left-radius: 4px;
+    font-size: 0.8rem; color: #475569;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dots span {
+    display: inline-block; width: 5px; height: 5px;
+    background: #0090d4; border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Input bar */
+  .input-bar {
+    padding: 16px 32px 20px;
+    background: rgba(10, 10, 15, 0.8);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+  }
+  .input-wrap {
+    display: flex; gap: 10px; align-items: flex-end;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 14px;
+    padding: 10px 10px 10px 16px;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: rgba(0, 144, 212, 0.4); }
+  #input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: #e2e8f0; font-size: 0.88rem; font-family: inherit;
+    resize: none; max-height: 120px; line-height: 1.5;
+    padding: 2px 0;
+  }
+  #input::placeholder { color: #334155; }
+  #send-btn {
+    width: 36px; height: 36px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, #0090d4, #00c27a);
+    color: white; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: opacity 0.2s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  #send-btn:hover { opacity: 0.85; transform: scale(1.05); }
+  #send-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+  #send-btn svg { width: 16px; height: 16px; }
+
+  .input-hint {
+    font-size: 0.68rem; color: #1e293b;
+    margin-top: 8px; text-align: center;
+  }
+
+  /* Welcome */
+  .welcome {
+    text-align: center; padding: 40px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .welcome-icon {
+    width: 56px; height: 56px; border-radius: 16px;
+    background: linear-gradient(135deg, #00c27a20, #0090d420);
+    border: 1px solid rgba(0, 194, 122, 0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 0 40px rgba(0, 194, 122, 0.1);
+  }
+  .welcome h2 { font-size: 1.1rem; font-weight: 600; color: #f1f5f9; }
+  .welcome p { font-size: 0.82rem; color: #475569; max-width: 360px; line-height: 1.6; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="neo-dot"></div>
-  <h1>Neo4j MCP Chat Agent</h1>
-  <span class="badge">Powered by Groq + Neo4j</span>
+  <div class="header-left">
+    <div class="logo">🔗</div>
+    <div class="header-title">
+      <h1>Neo4j MCP Chat Agent</h1>
+      <p>Powered by Groq LLM + Neo4j AuraDB</p>
+    </div>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    Connected
+  </div>
 </header>
 
-<div id="chat">
-  <div class="message assistant">👋 Hi! I'm your Neo4j movie assistant. Ask me anything about movies — recommendations, top-rated films, actor filmographies, or graph queries!
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-label">Recommendations</div>
+    <button class="chip" onclick="send(this.textContent)">Recommend movies like Inception</button>
+    <button class="chip" onclick="send(this.textContent)">What to watch after Interstellar?</button>
 
-Try: <em>"Recommend movies similar to Inception"</em> or <em>"Who directed The Dark Knight?"</em></div>
-</div>
+    <div class="sidebar-label">Search</div>
+    <button class="chip" onclick="send(this.textContent)">Show all Sci-Fi movies</button>
+    <button class="chip" onclick="send(this.textContent)">Best Crime movies</button>
+    <button class="chip" onclick="send(this.textContent)">Movies from 1994</button>
 
-<div class="suggestions" id="suggestions">
-  <div class="chip" onclick="send(this.textContent)">🎬 Top rated movies</div>
-  <div class="chip" onclick="send(this.textContent)">🔮 Recommend movies like Inception</div>
-  <div class="chip" onclick="send(this.textContent)">🎭 Movies with Keanu Reeves</div>
-  <div class="chip" onclick="send(this.textContent)">🎥 Christopher Nolan films</div>
-  <div class="chip" onclick="send(this.textContent)">🔫 Best Crime movies</div>
-</div>
+    <div class="sidebar-label">People</div>
+    <button class="chip" onclick="send(this.textContent)">Christopher Nolan films</button>
+    <button class="chip" onclick="send(this.textContent)">Movies with Keanu Reeves</button>
+    <button class="chip" onclick="send(this.textContent)">Samuel L. Jackson filmography</button>
 
-<div id="input-area">
-  <input id="input" type="text" placeholder="Ask about movies..." autofocus />
-  <button id="btn" onclick="send()">Send</button>
+    <div class="sidebar-label">Top Rated</div>
+    <button class="chip" onclick="send(this.textContent)">Top 5 rated movies</button>
+    <button class="chip" onclick="send(this.textContent)">Best Action movies</button>
+  </div>
+
+  <div class="chat-wrapper">
+    <div id="chat">
+      <div class="welcome">
+        <div class="welcome-icon">🎬</div>
+        <h2>Ask me anything about movies</h2>
+        <p>I query a live Neo4j graph database using MCP tools. Try recommendations, actor filmographies, ratings, or custom graph queries.</p>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <div class="input-wrap">
+        <textarea id="input" rows="1" placeholder="Ask about movies, directors, recommendations..."></textarea>
+        <button id="send-btn" onclick="send()" title="Send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">Press Enter to send · Shift+Enter for new line</div>
+    </div>
+  </div>
 </div>
 
 <script>
   const chatEl = document.getElementById('chat');
   const inputEl = document.getElementById('input');
-  const btnEl = document.getElementById('btn');
+  const btnEl = document.getElementById('send-btn');
   const history = [];
+  let welcomeRemoved = false;
+
+  // Auto-resize textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
 
   function addMessage(role, text) {
-    const div = document.createElement('div');
-    div.className = `message ${role}`;
-    div.textContent = text;
-    chatEl.appendChild(div);
+    if (!welcomeRemoved) {
+      chatEl.querySelector('.welcome')?.remove();
+      welcomeRemoved = true;
+    }
+    const row = document.createElement('div');
+    row.className = `msg-row ${role === 'user' ? 'user' : ''}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `avatar ${role === 'user' ? 'user-av' : 'bot'}`;
+    avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role === 'user' ? 'user' : 'bot'}`;
+    bubble.textContent = text;
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatEl.appendChild(row);
     chatEl.scrollTop = chatEl.scrollHeight;
-    return div;
+    return bubble;
+  }
+
+  function addThinking() {
+    if (!welcomeRemoved) {
+      chatEl.querySelector('.welcome')?.remove();
+      welcomeRemoved = true;
+    }
+    const row = document.createElement('div');
+    row.className = 'thinking-row';
+    row.innerHTML = `
+      <div class="avatar bot">🤖</div>
+      <div class="thinking-bubble">
+        <span>Querying Neo4j graph</span>
+        <div class="dots"><span></span><span></span><span></span></div>
+      </div>`;
+    chatEl.appendChild(row);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return row;
   }
 
   async function send(text) {
     const message = text || inputEl.value.trim();
     if (!message) return;
     inputEl.value = '';
-    document.getElementById('suggestions').style.display = 'none';
+    inputEl.style.height = 'auto';
 
     addMessage('user', message);
     btnEl.disabled = true;
-
-    const thinking = document.createElement('div');
-    thinking.className = 'thinking';
-    thinking.textContent = '⚙️ Querying Neo4j graph...';
-    chatEl.appendChild(thinking);
-    chatEl.scrollTop = chatEl.scrollHeight;
+    const thinking = addThinking();
 
     try {
       const res = await fetch('/api/chat', {
@@ -107,16 +358,19 @@ Try: <em>"Recommend movies similar to Inception"</em> or <em>"Who directed The D
       addMessage('assistant', reply);
       history.push({ role: 'user', content: message });
       history.push({ role: 'assistant', content: reply });
-      if (history.length > 20) history.splice(0, 2); // keep context manageable
+      if (history.length > 20) history.splice(0, 2);
     } catch (err) {
       thinking.remove();
       addMessage('assistant', `Connection error: ${err.message}`);
     }
+
     btnEl.disabled = false;
     inputEl.focus();
   }
 
-  inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
 </script>
 </body>
 </html>
