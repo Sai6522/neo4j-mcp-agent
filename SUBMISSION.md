@@ -16,7 +16,7 @@
 
 ## Country
 
-**Country:** India
+**Country:** 🇮🇳 India
 
 ---
 
