@@ -1,0 +1,15 @@
+{
+  "name": "neo4j-mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.12.1",
+    "neo4j-driver": "5.27.0",
+    "dotenv": "16.4.7"
+  }
+}

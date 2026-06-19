@@ -1,0 +1,16 @@
+{
+  "name": "neo4j-mcp-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "groq-sdk": "0.13.0",
+    "@modelcontextprotocol/sdk": "1.12.1",
+    "dotenv": "16.4.7",
+    "express": "4.19.2",
+    "cors": "2.8.5"
+  }
+}
