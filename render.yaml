@@ -2,8 +2,8 @@ services:
   - type: web
     name: neo4j-mcp-agent
     runtime: node
-    buildCommand: cd mcp-server && npm install && cd ../agent && npm install
-    startCommand: cd agent && node index.js
+    buildCommand: npm install
+    startCommand: node agent/index.js
     envVars:
       - key: GROQ_API_KEY
         sync: false
